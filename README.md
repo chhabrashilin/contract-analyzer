@@ -1,36 +1,165 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ContractAI - Intelligent Contract Analysis Platform
 
-## Getting Started
+An **Amazon Senior Developer** level project showcasing production-grade Next.js architecture with RAG (Retrieval Augmented Generation) for legal document analysis.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Smart Document Processing**: Asynchronous parsing of PDF/DOCX contracts with queue-based architecture
+- **RAG-Powered Search**: Semantic search using OpenAI embeddings and vector similarity
+- **Event-Driven Architecture**: Decoupled processing pipeline using in-memory queue (production-ready for Redis/BullMQ)
+- **Type-Safe Database**: PostgreSQL with Prisma ORM and comprehensive schema
+- **Modern UI**: Beautiful, responsive interface built with Next.js 15 and TailwindCSS
+
+## 📋 Architecture
+
+```
+┌─────────────┐
+│   Next.js   │  ← User uploads contract
+│   Frontend  │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────────┐
+│  API Routes     │  ← Validates, saves file, enqueues job
+│  /api/upload    │
+└──────┬──────────┘
+       │
+       ▼
+┌──────────────────┐
+│  Queue Service   │  ← In-memory (dev) / Redis (prod)
+│  (Async Jobs)    │
+└──────┬───────────┘
+       │
+       ▼
+┌──────────────────────┐
+│  Contract Parser     │  ← Extracts text, chunks, embeds
+│  Worker              │
+└──────┬───────────────┘
+       │
+       ├─────────────────────┐
+       ▼                     ▼
+┌─────────────┐      ┌────────────────┐
+│  PostgreSQL │      │  Vector Store  │
+│  (Metadata) │      │  (Embeddings)  │
+└─────────────┘      └────────────────┘
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Database**: PostgreSQL + Prisma
+- **Vector DB**: In-Memory (dev) / Pinecone (production-ready)
+- **AI**: OpenAI (GPT-4, text-embedding-3-small)
+- **Queue**: In-Memory / BullMQ (Redis)
+- **Styling**: TailwindCSS 4
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📦 Installation
 
-## Learn More
+```bash
+# Install dependencies
+npm install
 
-To learn more about Next.js, take a look at the following resources:
+# Setup environment variables
+cp .env.example .env
+# Add your DATABASE_URL and OPENAI_API_KEY
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Generate Prisma Client (optional if DB available)
+npx prisma generate
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Run development server
+npm run dev
+```
 
-## Deploy on Vercel
+## 🔑 Environment Variables
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```env
+DATABASE_URL="postgresql://user:pass@localhost:5432/contractai"
+OPENAI_API_KEY="sk-..."
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🎯 Usage
+
+1. **Upload Contract**: Drag & drop a PDF or DOCX file
+2. **Processing**: System parses, chunks, and generates embeddings asynchronously
+3. **Query**: Ask questions via `/api/contracts/[id]/ask`
+
+### Example API Request
+
+```bash
+curl -X POST http://localhost:3000/api/contracts/abc123/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is the termination clause?"}'
+```
+
+**Response**:
+```json
+{
+  "answer": "The termination clause (Chunk 3) allows either party to terminate with 30 days written notice.",
+  "sources": [...]
+}
+```
+
+## 🏗️ Project Structure
+
+```
+contract-analyzer/
+├── app/
+│   ├── page.tsx              # Main upload interface
+│   └── api/
+│       ├── upload/           # File upload endpoint
+│       └── contracts/[id]/
+│           └── ask/          # RAG question-answering
+├── lib/
+│   ├── db.ts                 # Prisma client
+│   ├── auth.ts               # Auth utilities
+│   ├── queue/                # Queue abstraction
+│   ├── workers/              # Background job processors
+│   ├── chunking/             # Text chunking logic
+│   ├── embeddings/           # OpenAI embedding generation
+│   └── vector/               # Vector store interface
+├── components/
+│   └── file-upload.tsx       # Drag & drop component
+└── prisma/
+    └── schema.prisma         # Database schema
+```
+
+## 🔐 Security Features
+
+- File validation (MIME type, size)
+- User authentication (mock for dev, ready for Clerk/NextAuth)
+- Database-level cascading deletes
+- Error handling with graceful failures
+
+## 🚀 Production Deployment
+
+### Recommended Setup
+- **Frontend**: Vercel
+- **Database**: Supabase / AWS RDS
+- **Vector DB**: Pinecone
+- **Queue**: Redis (Upstash) + BullMQ
+
+## 📊 Database Schema
+
+- `User`: User accounts with role-based access
+- `Contract`: Contract metadata and status
+- `ContractChunk`: Text chunks for RAG
+- `AnalysisResult`: AI-generated summaries and risk analysis
+
+## 🎓 Learning Highlights
+
+This project demonstrates:
+- ✅ Event-driven architecture patterns
+- ✅ RAG implementation from scratch
+- ✅ Queue-based async processing
+- ✅ Type-safe database operations
+- ✅ Modular, testable code structure
+- ✅ Production-ready Next.js patterns
+
+## 📝 License
+
+MIT
+
+---
+
+**Built with ambition.** 🚀

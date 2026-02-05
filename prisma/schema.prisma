@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  contracts Contract[]
+}
+
+enum ContractStatus {
+  UPLOAD_PENDING
+  UPLOADED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Contract {
+  id          String         @id @default(cuid())
+  userId      String
+  title       String
+  fileUrl     String // S3 URL
+  status      ContractStatus @default(UPLOAD_PENDING)
+  uploadDate  DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  
+  // Metadata for the file
+  fileSize    Int?
+  mimeType    String?
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analysis    AnalysisResult?
+  chunks      ContractChunk[]
+
+  @@index([userId])
+}
+
+// Stores the high-level summary and risks found
+model AnalysisResult {
+  id          String   @id @default(cuid())
+  contractId  String   @unique
+  summary     String?  @db.Text
+  risks       Json?    // Array of risk objects { severity, description, clause }
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+// Chunks for RAG - Embeddings stored here or in Pinecone
+model ContractChunk {
+  id          String   @id @default(cuid())
+  contractId  String
+  content     String   @db.Text
+  chunkIndex  Int
+  
+  // Optional: Store embedding locally if using pgvector, otherwise this ID allows mapping to Pinecone
+  // embedding Vector? 
+
+  contract    Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+}
