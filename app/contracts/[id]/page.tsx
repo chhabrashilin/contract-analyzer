@@ -7,7 +7,7 @@ import { ChatInterface } from "@/components/chat-interface";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Clock, Layers, CheckCircle, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, FileText, Clock, Layers, CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import axios from "axios";
 
 interface Contract {
@@ -24,9 +24,9 @@ interface Contract {
 
 const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "destructive" | "secondary"; icon: any }> = {
     UPLOAD_PENDING: { label: "Pending", variant: "warning", icon: Clock },
-    UPLOADED: { label: "Uploaded", variant: "secondary", icon: Clock },
+    UPLOADED: { label: "Queued", variant: "secondary", icon: Clock },
     PROCESSING: { label: "Processing", variant: "warning", icon: Loader2 },
-    COMPLETED: { label: "Completed", variant: "success", icon: CheckCircle },
+    COMPLETED: { label: "Ready", variant: "success", icon: CheckCircle },
     FAILED: { label: "Failed", variant: "destructive", icon: AlertCircle },
 };
 
@@ -52,10 +52,11 @@ export default function ContractPage({ params }: { params: Promise<{ id: string 
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+            <div className="min-h-screen bg-background">
                 <Navbar />
-                <div className="flex items-center justify-center py-32">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                <div className="flex flex-col items-center justify-center py-24">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-3" />
+                    <p className="text-sm text-muted-foreground">Loading contract...</p>
                 </div>
             </div>
         );
@@ -63,13 +64,16 @@ export default function ContractPage({ params }: { params: Promise<{ id: string 
 
     if (!contract) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+            <div className="min-h-screen bg-background">
                 <Navbar />
-                <div className="flex flex-col items-center justify-center py-32">
-                    <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-                    <h2 className="text-xl font-semibold mb-2">Contract Not Found</h2>
+                <div className="flex flex-col items-center justify-center py-24">
+                    <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center mb-4">
+                        <AlertCircle className="h-6 w-6 text-destructive" />
+                    </div>
+                    <h2 className="text-lg font-medium mb-1">Contract Not Found</h2>
+                    <p className="text-sm text-muted-foreground mb-4">The requested document could not be found.</p>
                     <Link href="/dashboard">
-                        <Button variant="outline">Back to Dashboard</Button>
+                        <Button variant="outline" size="sm">Back to Dashboard</Button>
                     </Link>
                 </div>
             </div>
@@ -80,102 +84,131 @@ export default function ContractPage({ params }: { params: Promise<{ id: string 
     const StatusIcon = status.icon;
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
+        <div className="min-h-screen bg-background">
             <Navbar />
 
-            <main className="container mx-auto px-4 py-8">
-                {/* Back Button */}
-                <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Dashboard
+            <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                {/* Breadcrumb */}
+                <Link
+                    href="/dashboard"
+                    className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors"
+                >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    Back to Contracts
                 </Link>
 
                 <div className="grid lg:grid-cols-3 gap-6">
-                    {/* Left: Contract Info */}
-                    <div className="lg:col-span-1 space-y-6">
-                        {/* Contract Header */}
+                    {/* Left Sidebar */}
+                    <div className="lg:col-span-1 space-y-4">
+                        {/* Document Info */}
                         <Card>
-                            <CardHeader>
-                                <div className="flex items-start gap-4">
-                                    <div className="p-3 rounded-lg bg-gradient-to-br from-violet-500/10 to-indigo-500/10">
-                                        <FileText className="h-8 w-8 text-primary" />
+                            <CardContent className="p-5">
+                                <div className="flex items-start gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center flex-shrink-0">
+                                        <FileText className="h-5 w-5 text-primary" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <CardTitle className="text-lg truncate">{contract.title}</CardTitle>
-                                        <p className="text-sm text-muted-foreground mt-1">
+                                        <h1 className="font-medium text-sm truncate mb-0.5">
+                                            {contract.title}
+                                        </h1>
+                                        <p className="text-xs text-muted-foreground">
                                             {new Date(contract.uploadDate).toLocaleDateString("en-US", {
-                                                year: "numeric",
-                                                month: "long",
+                                                month: "short",
                                                 day: "numeric",
+                                                year: "numeric",
                                             })}
                                         </p>
                                     </div>
                                 </div>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Status</span>
-                                    <Badge variant={status.variant} className="flex items-center gap-1">
-                                        <StatusIcon className={`h-3 w-3 ${contract.status === 'PROCESSING' ? 'animate-spin' : ''}`} />
-                                        {status.label}
-                                    </Badge>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Chunks</span>
-                                    <span className="text-sm font-medium">{contract._count.chunks}</span>
-                                </div>
-                                {contract.fileSize && (
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-sm text-muted-foreground">Size</span>
-                                        <span className="text-sm font-medium">{(contract.fileSize / 1024).toFixed(1)} KB</span>
+
+                                <div className="space-y-3 pt-3 border-t">
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">Status</span>
+                                        <Badge variant={status.variant}>
+                                            <StatusIcon className={`h-3 w-3 mr-1 ${contract.status === 'PROCESSING' ? 'animate-spin' : ''}`} />
+                                            {status.label}
+                                        </Badge>
                                     </div>
-                                )}
+                                    <div className="flex items-center justify-between text-sm">
+                                        <span className="text-muted-foreground">Chunks</span>
+                                        <span className="font-medium">{contract._count.chunks}</span>
+                                    </div>
+                                    {contract.fileSize && (
+                                        <div className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground">Size</span>
+                                            <span className="font-medium">{(contract.fileSize / 1024).toFixed(0)} KB</span>
+                                        </div>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
 
                         {/* Analysis Summary */}
-                        {contract.analysis && (
+                        {contract.analysis?.summary && (
                             <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-sm font-medium">Analysis Summary</CardTitle>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                                        Summary
+                                    </CardTitle>
                                 </CardHeader>
-                                <CardContent>
-                                    <p className="text-sm text-muted-foreground">{contract.analysis.summary}</p>
+                                <CardContent className="pt-0">
+                                    <p className="text-sm text-foreground leading-relaxed">
+                                        {contract.analysis.summary}
+                                    </p>
                                 </CardContent>
                             </Card>
                         )}
 
-                        {/* Chunks Preview */}
+                        {/* Document Chunks */}
                         <Card>
-                            <CardHeader className="flex flex-row items-center justify-between">
-                                <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                    <Layers className="h-4 w-4" />
-                                    Document Chunks
-                                </CardTitle>
-                                <Button variant="ghost" size="sm" onClick={() => setShowChunks(!showChunks)}>
-                                    {showChunks ? "Hide" : "Show"}
-                                </Button>
+                            <CardHeader className="pb-2">
+                                <button
+                                    onClick={() => setShowChunks(!showChunks)}
+                                    className="flex items-center justify-between w-full text-left"
+                                >
+                                    <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                                        <Layers className="h-3.5 w-3.5" />
+                                        Document Chunks
+                                    </CardTitle>
+                                    {showChunks ? (
+                                        <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                                    ) : (
+                                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                </button>
                             </CardHeader>
                             {showChunks && (
-                                <CardContent className="max-h-64 overflow-y-auto space-y-2">
-                                    {contract.chunks.map((chunk) => (
-                                        <div key={chunk.id} className="p-3 rounded-lg bg-muted text-xs">
-                                            <span className="font-medium text-muted-foreground">Chunk {chunk.chunkIndex + 1}:</span>
-                                            <p className="mt-1 line-clamp-3">{chunk.content}</p>
-                                        </div>
-                                    ))}
+                                <CardContent className="pt-0 max-h-72 overflow-y-auto">
+                                    <div className="space-y-2">
+                                        {contract.chunks.map((chunk) => (
+                                            <div
+                                                key={chunk.id}
+                                                className="p-2.5 rounded-lg bg-muted/50 border"
+                                            >
+                                                <div className="text-xs font-medium text-muted-foreground mb-1">
+                                                    Chunk {chunk.chunkIndex + 1}
+                                                </div>
+                                                <p className="text-xs text-foreground line-clamp-3 leading-relaxed">
+                                                    {chunk.content}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </CardContent>
                             )}
                         </Card>
                     </div>
 
-                    {/* Right: Chat Interface */}
+                    {/* Chat Interface */}
                     <div className="lg:col-span-2">
-                        <Card className="h-[700px] flex flex-col">
-                            <CardHeader className="border-b">
-                                <CardTitle className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                    AI Contract Assistant
+                        <Card className="h-[calc(100vh-180px)] min-h-[500px] flex flex-col">
+                            <CardHeader className="border-b py-3 px-5">
+                                <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    AI Assistant
                                 </CardTitle>
                             </CardHeader>
                             <div className="flex-1 overflow-hidden">

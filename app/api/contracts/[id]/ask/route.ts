@@ -3,11 +3,13 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { generateEmbedding } from "@/lib/embeddings/openai-embeddings";
 import { vectorStore } from "@/lib/vector";
-import OpenAI from "openai";
+import { hasGemini } from "@/lib/env";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Only initialize Gemini if API key is available
+const genAI = hasGemini
+    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+    : null;
 
 export async function POST(
     request: NextRequest,
@@ -45,7 +47,15 @@ export async function POST(
             );
         }
 
-        // PHASE 3: RAG Pipeline
+        // Check if AI features are available
+        if (!genAI) {
+            return NextResponse.json(
+                { error: "AI features are not available. Please configure the GEMINI_API_KEY." },
+                { status: 503 }
+            );
+        }
+
+        // RAG Pipeline
         // 1. Embed the question
         const questionEmbedding = await generateEmbedding(question);
 
@@ -69,23 +79,19 @@ export async function POST(
             .map((chunk, idx) => `[Chunk ${idx + 1}]:\n${chunk.metadata.content}`)
             .join("\n\n");
 
-        // 4. Generate answer using GPT-4
-        const systemPrompt = `You are a legal contract analysis assistant. Answer the user's question based ONLY on the provided contract excerpts. 
-If the answer cannot be found in the excerpts, say so. Always cite which chunk(s) you're referencing.`;
+        // 4. Generate answer using Gemini
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                { role: "system", content: systemPrompt },
-                {
-                    role: "user",
-                    content: `Contract Excerpts:\n${context}\n\nQuestion: ${question}`,
-                },
-            ],
-            temperature: 0.3,
-        });
+        const prompt = `You are a legal contract analysis assistant. Answer the user's question based ONLY on the provided contract excerpts. 
+If the answer cannot be found in the excerpts, say so. Always cite which chunk(s) you're referencing.
 
-        const answer = completion.choices[0].message.content || "No answer generated.";
+Contract Excerpts:
+${context}
+
+Question: ${question}`;
+
+        const result = await model.generateContent(prompt);
+        const answer = result.response.text() || "No answer generated.";
 
         // 5. Return answer with sources
         return NextResponse.json({

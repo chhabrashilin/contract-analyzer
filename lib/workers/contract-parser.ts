@@ -5,14 +5,16 @@ import path from "path";
 import { chunkText } from "@/lib/chunking/text-chunker";
 import { generateEmbeddings } from "@/lib/embeddings/openai-embeddings";
 import { vectorStore } from "@/lib/vector";
+import mammoth from "mammoth";
 
 interface ContractJobData {
     contractId: string;
     filePath: string;
+    mimeType?: string;
 }
 
 export async function processContract(data: ContractJobData) {
-    const { contractId, filePath } = data;
+    const { contractId, filePath, mimeType } = data;
 
     try {
         console.log(`[Worker] Processing Contract ID: ${contractId}`);
@@ -28,10 +30,28 @@ export async function processContract(data: ContractJobData) {
         const dataBuffer = await fs.readFile(absolutePath);
 
         // 2. Extract Text
-        const pdfData = await pdf(dataBuffer);
-        const text = pdfData.text;
+        let text = "";
+        let pageCount: number | null = null;
 
-        console.log(`[Worker] Extracted ${pdfData.numpages} pages, ${text.length} characters`);
+        if (mimeType === "application/pdf" || filePath.toLowerCase().endsWith(".pdf")) {
+            const pdfData = await pdf(dataBuffer);
+            text = pdfData.text;
+            pageCount = pdfData.numpages;
+            console.log(`[Worker] Extracted ${pdfData.numpages} pages, ${text.length} characters`);
+        } else if (
+            mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+            filePath.toLowerCase().endsWith(".docx")
+        ) {
+            const result = await mammoth.extractRawText({ buffer: dataBuffer });
+            text = result.value || "";
+            console.log(`[Worker] Extracted DOCX text, ${text.length} characters`);
+        } else {
+            throw new Error(`Unsupported file type: ${mimeType || "unknown"}`);
+        }
+
+        if (!text || text.trim().length === 0) {
+            throw new Error("No extractable text found in document");
+        }
 
         // 3. PHASE 3: Chunk the text
         const chunks = chunkText(text, 1000, 100);
@@ -81,7 +101,7 @@ export async function processContract(data: ContractJobData) {
         await db.analysisResult.create({
             data: {
                 contractId,
-                summary: `Extracted ${pdfData.numpages} pages, created ${chunks.length} searchable chunks.`,
+                summary: `Extracted ${pageCount ? `${pageCount} pages, ` : ""}created ${chunks.length} searchable chunks.`,
                 risks: [],
             },
         });

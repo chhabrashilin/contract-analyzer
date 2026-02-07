@@ -44,7 +44,7 @@ const mockDb = {
       const user: MockUser = {
         id: data.id || generateId(),
         email: data.email,
-        name: data.name || null as any,
+        name: data.name ?? "",
         role: data.role || "USER",
       };
       mockStorage.users.set(user.id, user);

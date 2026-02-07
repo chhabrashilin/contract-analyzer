@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@pinecone-database/pinecone": "^7.0.0",
     "@prisma/client": "^7.3.0",
     "axios": "^1.13.4",

@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { contractQueue } from "@/lib/queue/in-memory-queue";
 import { processContract } from "@/lib/workers/contract-parser";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 
 // REGISTER WORKER (Ideally this goes in an instrumentation hook, but for simple dev server it works here or in a separate init file)
@@ -29,6 +29,19 @@ export async function POST(request: NextRequest) {
         }
 
         // Validation
+        const maxBytes = 10 * 1024 * 1024;
+        if (file.size > maxBytes) {
+            return NextResponse.json({ error: "File too large (max 10MB)" }, { status: 400 });
+        }
+
+        const allowedTypes = new Set([
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ]);
+        if (!allowedTypes.has(file.type)) {
+            return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
+        }
+
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
 
@@ -37,6 +50,7 @@ export async function POST(request: NextRequest) {
         const uploadDir = path.join(process.cwd(), "public", "uploads");
         const filePath = path.join(uploadDir, fileName);
 
+        await mkdir(uploadDir, { recursive: true });
         await writeFile(filePath, buffer);
 
         // Create Contract Record
@@ -60,13 +74,15 @@ export async function POST(request: NextRequest) {
         await contractQueue.enqueue(contract.id, {
             type: "CONTRACT_UPLOAD",
             contractId: contract.id,
-            filePath: workerFilePath
+            filePath: workerFilePath,
+            mimeType: file.type,
         });
 
         return NextResponse.json({ success: true, contractId: contract.id });
 
     } catch (error) {
         console.error("Upload error:", error);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

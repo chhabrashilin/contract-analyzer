@@ -1,20 +1,24 @@
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { hasGemini } from "@/lib/env";
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Only initialize Gemini if API key is available
+const genAI = hasGemini
+    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
+    : null;
 
 /**
- * Generate embeddings for text using OpenAI's embedding model
+ * Generate embeddings for text using Gemini's embedding model
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-    try {
-        const response = await openai.embeddings.create({
-            model: "text-embedding-3-small",
-            input: text,
-        });
+    if (!genAI) {
+        console.warn("[Embeddings] Gemini API key not configured, returning empty embedding");
+        return [];
+    }
 
-        return response.data[0].embedding;
+    try {
+        const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+        const result = await model.embedContent(text);
+        return result.embedding.values;
     } catch (error) {
         console.error("[Embeddings] Error generating embedding:", error);
         throw error;
@@ -25,13 +29,22 @@ export async function generateEmbedding(text: string): Promise<number[]> {
  * Generate embeddings for multiple texts in batch
  */
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-    try {
-        const response = await openai.embeddings.create({
-            model: "text-embedding-3-small",
-            input: texts,
-        });
+    if (!genAI) {
+        console.warn("[Embeddings] Gemini API key not configured, returning empty embeddings");
+        return [];
+    }
 
-        return response.data.map(item => item.embedding);
+    try {
+        const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+        const embeddings: number[][] = [];
+
+        // Gemini doesn't have native batch embedding, process sequentially
+        for (const text of texts) {
+            const result = await model.embedContent(text);
+            embeddings.push(result.embedding.values);
+        }
+
+        return embeddings;
     } catch (error) {
         console.error("[Embeddings] Error generating embeddings:", error);
         throw error;
