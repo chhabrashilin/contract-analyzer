@@ -34,7 +34,7 @@ class SmartVectorStore implements VectorStore {
         }
     }
 
-    async query(vector: number[], topK: number, filter?: Record<string, any>): Promise<QueryResult[]> {
+    async query(vector: number[], topK: number, filter?: Record<string, string>): Promise<QueryResult[]> {
         const pinecone = await getPineconeStore();
 
         if (pinecone) {

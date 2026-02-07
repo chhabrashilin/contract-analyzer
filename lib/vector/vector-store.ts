@@ -18,5 +18,5 @@ export interface VectorStore {
         metadata: VectorMetadata;
     }[]): Promise<void>;
 
-    query(vector: number[], topK: number, filter?: Record<string, any>): Promise<QueryResult[]>;
+    query(vector: number[], topK: number, filter?: Record<string, string>): Promise<QueryResult[]>;
 }

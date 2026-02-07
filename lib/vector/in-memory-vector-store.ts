@@ -19,7 +19,7 @@ export class InMemoryVectorStore implements VectorStore {
         console.log(`[InMemoryVectorStore] Upserted ${vectors.length} vectors`);
     }
 
-    async query(queryVector: number[], topK: number, filter?: Record<string, any>): Promise<QueryResult[]> {
+    async query(queryVector: number[], topK: number, filter?: Record<string, string>): Promise<QueryResult[]> {
         let filteredVectors = this.vectors;
 
         // Apply filter if provided (e.g., contractId)

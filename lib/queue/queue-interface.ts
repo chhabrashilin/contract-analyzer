@@ -1,9 +1,9 @@
-export interface Job {
+export interface Job<T = Record<string, unknown>> {
     id: string;
-    data: any;
+    data: T;
 }
 
-export interface QueueService {
-    enqueue(jobId: string, data: any): Promise<void>;
-    onProcess(handler: (job: Job) => Promise<void>): void;
+export interface QueueService<T = Record<string, unknown>> {
+    enqueue(jobId: string, data: T): Promise<void>;
+    onProcess(handler: (job: Job<T>) => Promise<void>): void;
 }

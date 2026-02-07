@@ -27,7 +27,7 @@ export async function getCurrentUser() {
             email: user.email,
             role: user.role
         };
-    } catch (error) {
+    } catch {
         // If DB is not available, return mock data
         console.warn("Database not available, using mock user");
         return {

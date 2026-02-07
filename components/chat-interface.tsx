@@ -15,10 +15,9 @@ interface Message {
 
 interface ChatInterfaceProps {
     contractId: string;
-    contractTitle: string;
 }
 
-export function ChatInterface({ contractId, contractTitle }: ChatInterfaceProps) {
+export function ChatInterface({ contractId }: ChatInterfaceProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);

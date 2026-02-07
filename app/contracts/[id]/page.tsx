@@ -10,6 +10,12 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, FileText, Clock, Layers, CheckCircle, Loader2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import axios from "axios";
 
+interface Risk {
+    severity: string;
+    description: string;
+    clause?: string;
+}
+
 interface Contract {
     id: string;
     title: string;
@@ -17,12 +23,14 @@ interface Contract {
     uploadDate: string;
     fileSize: number | null;
     mimeType: string | null;
-    analysis: { summary: string; risks: any[] } | null;
+    analysis: { summary: string; risks: Risk[] } | null;
     chunks: { id: string; content: string; chunkIndex: number }[];
     _count: { chunks: number };
 }
 
-const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "destructive" | "secondary"; icon: any }> = {
+type StatusIconComponent = React.ComponentType<{ className?: string }>;
+
+const statusConfig: Record<string, { label: string; variant: "success" | "warning" | "destructive" | "secondary"; icon: StatusIconComponent }> = {
     UPLOAD_PENDING: { label: "Pending", variant: "warning", icon: Clock },
     UPLOADED: { label: "Queued", variant: "secondary", icon: Clock },
     PROCESSING: { label: "Processing", variant: "warning", icon: Loader2 },
@@ -212,7 +220,7 @@ export default function ContractPage({ params }: { params: Promise<{ id: string 
                                 </CardTitle>
                             </CardHeader>
                             <div className="flex-1 overflow-hidden">
-                                <ChatInterface contractId={contract.id} contractTitle={contract.title} />
+                                <ChatInterface contractId={contract.id} />
                             </div>
                         </Card>
                     </div>

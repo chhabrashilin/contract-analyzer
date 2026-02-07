@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   // Strict mode for better development experience
   reactStrictMode: true,
 
+  // Mark pdf-parse as external to avoid test file bundling issues
+  serverExternalPackages: ["pdf-parse"],
+
   // Image optimization
   images: {
     formats: ["image/avif", "image/webp"],

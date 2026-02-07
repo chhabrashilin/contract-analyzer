@@ -1,11 +1,12 @@
 // Database client with graceful fallback
 // When DATABASE_URL is not available, we use mock data
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { hasDatabase } from "./env";
 
 // Type definitions for mock DB
-type MockUser = { id: string; email: string; name: string; role: string };
-type MockContract = {
+interface MockUser { id: string; email: string; name: string; role: string }
+interface MockContract {
   id: string;
   userId: string;
   title: string;
@@ -15,9 +16,10 @@ type MockContract = {
   updatedAt: Date;
   fileSize: number | null;
   mimeType: string | null;
-};
-type MockAnalysisResult = { id: string; contractId: string; summary: string; risks: any[] };
-type MockContractChunk = { id: string; contractId: string; content: string; chunkIndex: number };
+}
+interface Risk { severity: string; description: string; clause?: string }
+interface MockAnalysisResult { id: string; contractId: string; summary: string; risks: Risk[] }
+interface MockContractChunk { id: string; contractId: string; content: string; chunkIndex: number }
 
 // In-memory storage for development without DB
 const mockStorage = {
@@ -52,7 +54,7 @@ const mockDb = {
     },
   },
   contract: {
-    findMany: async ({ where, include, orderBy }: any = {}) => {
+    findMany: async ({ where, include }: any = {}) => {
       let contracts = Array.from(mockStorage.contracts.values());
       if (where?.userId) {
         contracts = contracts.filter(c => c.userId === where.userId);
@@ -145,7 +147,6 @@ async function getPrismaClient() {
   if (!prismaClient) {
     try {
       // Dynamic import for Prisma client
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const prismaModule = await import("@prisma/client") as any;
       const PrismaClient = prismaModule.PrismaClient || prismaModule.default?.PrismaClient;
 

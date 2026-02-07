@@ -1,19 +1,27 @@
 import { Job, QueueService } from "./queue-interface";
 
+// Contract job data type
+export interface ContractJobData {
+    type: "CONTRACT_UPLOAD";
+    contractId: string;
+    filePath: string;
+    mimeType?: string;
+}
+
 // Singleton in-memory queue for simple async processing without Redis
-class InMemoryQueue implements QueueService {
-    private jobs: Job[] = [];
-    private handlers: ((job: Job) => Promise<void>)[] = [];
+class InMemoryQueue implements QueueService<ContractJobData> {
+    private jobs: Job<ContractJobData>[] = [];
+    private handlers: ((job: Job<ContractJobData>) => Promise<void>)[] = [];
     private isProcessing = false;
 
-    async enqueue(jobId: string, data: any): Promise<void> {
+    async enqueue(jobId: string, data: ContractJobData): Promise<void> {
         const job = { id: jobId, data };
         this.jobs.push(job);
         console.log(`[Queue] Job ${jobId} enqueued.`);
         this.processNext();
     }
 
-    onProcess(handler: (job: Job) => Promise<void>): void {
+    onProcess(handler: (job: Job<ContractJobData>) => Promise<void>): void {
         this.handlers.push(handler);
     }
 
