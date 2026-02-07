@@ -96,6 +96,19 @@ const mockDb = {
       mockStorage.contracts.set(where.id, updated);
       return updated;
     },
+    delete: async ({ where }: { where: { id: string } }) => {
+      const contract = mockStorage.contracts.get(where.id);
+      if (!contract) throw new Error("Contract not found");
+      // Delete related data (cascade)
+      mockStorage.analysisResults.delete(where.id);
+      for (const [chunkId, chunk] of mockStorage.contractChunks.entries()) {
+        if (chunk.contractId === where.id) {
+          mockStorage.contractChunks.delete(chunkId);
+        }
+      }
+      mockStorage.contracts.delete(where.id);
+      return contract;
+    },
   },
   analysisResult: {
     create: async ({ data }: { data: any }) => {

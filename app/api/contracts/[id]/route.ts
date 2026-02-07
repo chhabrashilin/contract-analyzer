@@ -70,13 +70,9 @@ export async function DELETE(
         }
 
         // Delete the contract (chunks and analysis cascade via Prisma schema)
-        await db.contract.update({
+        await db.contract.delete({
             where: { id },
-            data: { status: "FAILED" }, // Mark as failed first, then would delete
         });
-
-        // For mock DB, we'll just mark as deleted. In production with Prisma,
-        // you'd use: await db.contract.delete({ where: { id } });
 
         return NextResponse.json({ success: true, message: "Contract deleted" });
     } catch (error) {

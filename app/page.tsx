@@ -116,7 +116,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
             <p>ContractIQ - Intelligent Document Analysis</p>
-            <p>Built with Next.js and OpenAI</p>
+            <p>Built with Next.js and Gemini AI</p>
           </div>
         </div>
       </footer>
